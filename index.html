@@ -11,8 +11,8 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Creator Board">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0c0c0c" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#f1f1ef" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#060606" media="(prefers-color-scheme: dark)">
 <script>
 /* On the test address (preview--creatorboard.netlify.app) the Home Screen app is named "CB Test" and shows a small label, so it's easy to tell apart from the live site. */
 (function(){
@@ -849,6 +849,168 @@ section.solo>.sec-head{display:none}
 @media (prefers-reduced-motion:reduce){.stg.just-done,.stg.just-done::after,.celebrate{animation:none}}
 .card-top:has(.cal-nav){flex-wrap:wrap}
 @media (max-width:640px){.card-top:has(.cal-nav) h3{flex-basis:100%}.card-top .cal-nav{width:100%;justify-content:space-between}}
+
+/* ===== Glass pass: same board, new surface. Cards float as frosted glass over a soft drifting light
+   that takes the board's accent color. Nothing here changes layout or behavior. ===== */
+:root{
+  --page:#f1f1ef;
+  --glass:rgb(255 255 255 / .56); --glass-hi:rgb(255 255 255 / .84); --glass-2:rgb(255 255 255 / .8);
+  --glass-line:rgb(255 255 255 / .95); --glass-edge:rgb(255 255 255 / .9);
+  --soft:rgb(17 17 17 / .05); --soft-line:rgb(17 17 17 / .09);
+  --lift:0 12px 32px -14px rgb(20 20 30 / .22), 0 1px 2px rgb(0 0 0 / .05);
+  --amb-a:22%; --amb-b:15%; --amb-c:9%;
+  --accent-grad:linear-gradient(135deg, color-mix(in srgb, var(--accent) 76%, #fff) 0%, var(--accent) 50%, color-mix(in srgb, var(--accent) 78%, #000) 100%);
+  --accent-glow:color-mix(in srgb, var(--accent) 45%, transparent);
+  --spring:cubic-bezier(.22,1.2,.36,1);
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --page:#060606;
+  --glass:rgb(255 255 255 / .045); --glass-hi:rgb(255 255 255 / .09); --glass-2:rgb(26 26 28 / .78);
+  --glass-line:rgb(255 255 255 / .12); --glass-edge:rgb(255 255 255 / .1);
+  --soft:rgb(255 255 255 / .07); --soft-line:rgb(255 255 255 / .11);
+  --lift:0 16px 36px -16px rgb(0 0 0 / .85);
+  --amb-a:30%; --amb-b:20%; --amb-c:12%}}
+:root[data-theme="dark"]{
+  --page:#060606;
+  --glass:rgb(255 255 255 / .045); --glass-hi:rgb(255 255 255 / .09); --glass-2:rgb(26 26 28 / .78);
+  --glass-line:rgb(255 255 255 / .12); --glass-edge:rgb(255 255 255 / .1);
+  --soft:rgb(255 255 255 / .07); --soft-line:rgb(255 255 255 / .11);
+  --lift:0 16px 36px -16px rgb(0 0 0 / .85);
+  --amb-a:30%; --amb-b:20%; --amb-c:12%}
+
+/* the light behind everything */
+html{background:var(--page)}
+body{background:transparent;min-height:100vh}
+body::before{content:"";position:fixed;inset:-25%;z-index:-1;pointer-events:none;filter:blur(40px);
+  background:
+    radial-gradient(40% 32% at 14% 8%, color-mix(in srgb, var(--accent) var(--amb-a), transparent), transparent 72%),
+    radial-gradient(46% 36% at 94% 30%, color-mix(in srgb, var(--accent) var(--amb-b), transparent), transparent 72%),
+    radial-gradient(54% 40% at 30% 104%, color-mix(in srgb, var(--accent) var(--amb-c), transparent), transparent 72%);
+  animation:glassDrift 28s ease-in-out infinite alternate}
+@keyframes glassDrift{0%{transform:translate3d(0,0,0) scale(1)}50%{transform:translate3d(4%,3%,0) scale(1.08)}100%{transform:translate3d(-3%,5%,0) scale(1.03)}}
+.wrap{padding-top:calc(28px + env(safe-area-inset-top,0px));padding-bottom:calc(96px + env(safe-area-inset-bottom,0px))}
+
+/* header and tabs */
+header{border-bottom:0;padding-bottom:4px}
+.countdown .n{text-shadow:0 6px 26px var(--accent-glow)}
+.tabs{border-bottom:0;margin-top:-20px;align-self:flex-start;gap:2px;padding:4px;border-radius:999px;background:var(--soft);border:1px solid var(--soft-line);max-width:100%}
+.tab{border-bottom:0;margin-bottom:0;border-radius:999px;padding:8px 18px;transition:color .2s ease,background-color .25s ease,box-shadow .25s ease}
+.tab[aria-selected="true"]{background:var(--glass-hi);box-shadow:0 2px 10px rgb(0 0 0 / .14), inset 0 1px 0 var(--glass-edge)}
+.tabs.sd-tabs{margin-top:0}
+
+/* buttons */
+.btn{background:var(--soft);border-color:var(--soft-line);padding:8px 16px;transition:transform .18s ease,border-color .2s ease,background-color .2s ease,box-shadow .25s ease}
+.btn:hover{border-color:color-mix(in srgb,var(--fg) 40%,transparent)}
+.btn:active:not(:disabled){transform:scale(.96)}
+.btn.primary{background:var(--accent-grad);border-color:transparent;color:var(--on-accent);box-shadow:0 8px 22px -8px var(--accent-glow), inset 0 1px 0 rgb(255 255 255 / .25)}
+.btn.ghost{background:transparent;border-color:transparent}
+.btn.danger{background:color-mix(in srgb,var(--danger) 8%,transparent);border-color:color-mix(in srgb,var(--danger) 45%,transparent)}
+.btn.sm{padding:5px 12px}
+.icon-btn{background:var(--soft);border-color:var(--soft-line);border-radius:10px;color:var(--fg);transition:transform .18s ease,border-color .2s ease}
+.icon-btn:active{transform:scale(.92)}
+.seg button{background:var(--soft);border-color:var(--soft-line)}
+.seg.mini{border-color:var(--soft-line);background:var(--soft)}
+
+/* cards */
+.card,.sec-blk,.shot-grp,.w-row,.oi{background:linear-gradient(180deg,var(--glass-hi),var(--glass));border:1px solid var(--glass-line);
+  box-shadow:var(--lift), inset 0 1px 0 var(--glass-edge);-webkit-backdrop-filter:blur(16px) saturate(140%);backdrop-filter:blur(16px) saturate(140%)}
+.card{border-radius:20px}
+.sec-blk,.shot-grp,.oi{border-radius:18px}
+.w-row{border-radius:16px}
+.card:hover,.card:focus-within{position:relative;z-index:3}
+.card.complete{border-color:color-mix(in srgb,var(--accent) 45%,var(--glass-line));
+  background:linear-gradient(180deg, color-mix(in srgb,var(--accent) 16%,var(--glass-hi)), color-mix(in srgb,var(--accent) 8%,var(--glass)))}
+.yt-card{border-top:1px solid var(--glass-line)}
+.ch-card:hover,.w-row:hover{border-color:color-mix(in srgb,var(--fg) 35%,transparent)}
+:root.tinted .card:not(.complete),:root.tinted .sec-blk,:root.tinted .shot-grp,:root.tinted .w-row{background:color-mix(in srgb,var(--card-bg) 78%,transparent);border-color:var(--glass-line)}
+:root.tinted .add-goal{background:transparent}
+.add-goal,.empty{border-radius:20px;border-color:var(--soft-line);border-width:1.5px}
+.banner,.demo-bar{border-radius:16px;border:1px solid color-mix(in srgb,var(--accent) 22%,var(--soft-line));
+  background:linear-gradient(135deg, color-mix(in srgb,var(--accent) 14%,transparent), color-mix(in srgb,var(--accent) 5%,transparent));color:var(--fg);
+  -webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px)}
+
+/* progress, milestones, habits */
+.track{background:var(--soft);border:0;height:10px}
+.yt-stat .track{height:7px}
+.fill{background:var(--accent-grad);box-shadow:0 0 12px -2px var(--accent-glow)}
+.arc-track{stroke:var(--soft-line)}
+.big-edit{border-bottom-color:var(--soft-line)}
+.big-edit:hover{background:var(--soft)}
+.big-input{background:var(--soft);border-color:var(--accent)}
+.step button{background:var(--soft);border-color:var(--soft-line);border-radius:12px;width:44px;height:38px;transition:transform .18s ease}
+.step button:last-child{background:var(--accent-grad);border-color:transparent;color:var(--on-accent);box-shadow:0 6px 16px -6px var(--accent-glow)}
+.step button:active{transform:scale(.92)}
+.tick{background:var(--soft);border-color:transparent}
+.tick.hit{background:var(--accent-grad);border-color:transparent;box-shadow:0 4px 12px -4px var(--accent-glow)}
+.tick.next{border-color:var(--fg);background:transparent}
+.habit{background:var(--soft);border-color:var(--soft-line);border-radius:16px}
+.habit .box{border-radius:50%}
+.habit.done .box{background:var(--accent-grad);border-color:transparent}
+.week button{background:var(--soft);border-color:transparent;border-radius:12px}
+.week button.off{background:transparent;border:1px dashed var(--soft-line)}
+.week button.done{background:var(--accent-grad);border-color:transparent;box-shadow:0 4px 12px -4px var(--accent-glow)}
+.week button.today{border:2px solid var(--fg)}
+.week button.today.done{border-color:color-mix(in srgb,var(--accent) 60%,var(--fg))}
+:root.tinted .week button:not(.done):not(.off),:root.tinted .step button:first-child{background:var(--soft)}
+
+/* pipeline, kanban, calendar, schedule */
+.item,.items>.item:first-child,.pub,.pub-row,.sch-list,.cal-agenda,.blk-edit,.sheet-foot,.auth .try{border-color:var(--soft-line)}
+.item .stages .stg,.item .stages i{background:var(--soft);border-color:transparent;border-radius:10px}
+.item .stages .stg.on,.item .stages i.on{background:var(--accent-grad);border-color:transparent;color:var(--on-accent)}
+.item .stages .stg.cur,.item .stages i.cur{background:color-mix(in srgb,var(--accent) 20%,transparent);border-color:var(--accent);color:var(--fg)}
+:root.tinted .item .stages .stg:not(.on):not(.cur){background:var(--soft)}
+.chip,.pill,.pace{border-color:var(--soft-line);background:var(--soft)}
+.chip.soon{border-color:var(--accent);background:transparent}
+.chip.late{background:var(--danger);border-color:var(--danger)}
+.pill.up,.pace.hot{background:var(--accent-grad);border-color:transparent}
+.pace.low{border-color:var(--danger);background:transparent}
+.kcol{background:var(--soft);border-radius:16px}
+.kcol.kover{background:color-mix(in srgb,var(--accent) 12%,transparent)}
+.kcard{background:var(--glass-hi);border-color:var(--glass-line);border-radius:12px;box-shadow:0 4px 14px -8px rgb(0 0 0 / .35)}
+.kghost,.cal-ghost{-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px)}
+.cal-day,:root.tinted .cal-day{background:var(--soft);border-radius:12px}
+.cal-day.out{background:transparent}
+.cal-day.cal-over{background:color-mix(in srgb,var(--accent) 14%,transparent)}
+.cal-ev{background:var(--soft);border-left-color:var(--soft-line)}
+.cal-ev.vid,.cal-week .cal-ev.vid{background:color-mix(in srgb,var(--accent) 18%,transparent)}
+.cal-ag:hover,.ch-v:hover{background:var(--soft)}
+.sch-row{border-radius:10px}
+.kv div{background:var(--soft);border-color:transparent;border-radius:12px}
+.bars span{background:var(--soft-line)}
+.bars span.me{background:var(--accent-grad)}
+.thumb,.thumb-box,.sd-mini,.chg-th{border-radius:12px}
+.steps i{background:var(--soft-line)}
+.steps i.on{background:var(--accent-grad)}
+.sd-count{background:var(--soft)}
+
+/* fields */
+.field input,.field select,.field textarea,.item-edit input,.item-edit select,.opts select,.kw input,.shot select,.shot .shot-desc,.ttl-in,.sd-notes,.ch-add input,.sd-wpm input{
+  background:var(--soft);border-color:var(--soft-line);border-radius:12px;transition:border-color .2s ease,box-shadow .2s ease}
+.field input:focus,.field select:focus,.field textarea:focus,.item-edit input:focus,.item-edit select:focus,.opts select:focus,.kw input:focus,.shot select:focus,.shot .shot-desc:focus,.ttl-in:focus,.sd-notes:focus,.ch-add input:focus,.sd-wpm input:focus{
+  outline:0;border-color:var(--accent);box-shadow:0 0 0 4px color-mix(in srgb,var(--accent) 18%,transparent)}
+.sec-head input{border-bottom-color:var(--soft-line)}
+.custom-color input{border-color:var(--soft-line)}
+.ms-chip{background:var(--soft);border-color:var(--soft-line)}
+.ms-chip button{background:transparent}
+.type-opt{background:linear-gradient(180deg,var(--glass-hi),var(--glass));border-color:var(--glass-line);border-radius:16px;box-shadow:var(--lift)}
+.days button{background:var(--soft);border-color:var(--soft-line);border-radius:10px}
+.days button[aria-pressed="true"]{background:var(--accent-grad);border-color:transparent}
+.ai-box{border-radius:14px}
+
+/* sheets, tips, toast */
+.scrim{background:rgb(0 0 0 / .35);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+.sheet{background:var(--glass-2);border:1px solid var(--glass-line);border-radius:24px 24px 0 0;box-shadow:0 -10px 40px rgb(0 0 0 / .25);
+  -webkit-backdrop-filter:blur(34px) saturate(180%);backdrop-filter:blur(34px) saturate(180%)}
+@media (min-width:700px){.sheet{border-radius:24px}}
+.scrim .sheet{animation:sheetUp .42s var(--spring)}
+#toast{background:var(--glass-2);color:var(--fg);border:1px solid var(--glass-line);box-shadow:0 12px 30px -10px rgb(0 0 0 / .4);font-weight:600;
+  -webkit-backdrop-filter:blur(24px) saturate(180%);backdrop-filter:blur(24px) saturate(180%)}
+.arc-tip{border-radius:14px}
+
+/* sign-in page */
+.auth{padding-top:calc(12vh + env(safe-area-inset-top,0px))}
+.auth .btn.primary{padding:12px 16px}
+.auth .field input{padding:12px 13px}
 </style>
 </head>
 <body>
