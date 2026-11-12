@@ -1055,6 +1055,12 @@ section.collapsed>.sec-head h2{color:var(--muted)}
 .acct{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;padding-top:6px}
 .acct .btn{min-width:120px}
 
+@keyframes swipeL{from{opacity:.4;transform:translateX(28px)}to{opacity:1;transform:none}}
+@keyframes swipeR{from{opacity:.4;transform:translateX(-28px)}to{opacity:1;transform:none}}
+.wrap.swipe-l>section,.wrap.swipe-l>.research{animation:swipeL .3s ease-out}
+.wrap.swipe-r>section,.wrap.swipe-r>.research{animation:swipeR .3s ease-out}
+.pbar{touch-action:manipulation}
+
 /* sign-in page */
 .auth{padding-top:calc(12vh + env(safe-area-inset-top,0px))}
 .auth .btn.primary{padding:12px 16px}
@@ -1602,6 +1608,34 @@ function decorateBoard(app){
       (app.querySelector(".acct")||app.querySelector(".foot"))?.before(e); }
   } else delete app.dataset.ptab;
 }
+
+// Phone tabs respond on touch end, so a tap that stops a scroll still switches tabs,
+// and a sideways swipe moves to the next or previous tab.
+const PT_ORDER=["today","videos","channel","research"];
+function goPtab(v){
+  if(v==="research"){ tab="ideas"; } else { tab="board"; ptab=v; try{ localStorage.setItem("cb-ptab",ptab); }catch(e){} }
+  editing=false; try{ localStorage.setItem("cb-tab",tab); }catch(e){} render(); window.scrollTo({top:0});
+}
+document.addEventListener("touchend", e=>{
+  const b=e.target.closest?.(".pbar button[data-v]"); if(!b) return;
+  e.preventDefault(); goPtab(b.dataset.v);
+}, {passive:false});
+let swX=null, swY=null, swT=0, swOk=false;
+document.addEventListener("touchstart", e=>{
+  swOk=false; if(e.touches.length!==1 || sheet || editing || !isPhone() || (tab!=="board"&&tab!=="ideas")) return;
+  if(e.target.closest("input,textarea,select,.pbar,.kanban,.kcol,.cal,.cal-week,.cal-month,.scroll-x,[data-drag]")) return;
+  const el=e.target.closest("*"); for(let n=el; n && n!==document.body; n=n.parentElement){ if(n.scrollWidth>n.clientWidth+4 && /(auto|scroll)/.test(getComputedStyle(n).overflowX)) return; }
+  swX=e.touches[0].clientX; swY=e.touches[0].clientY; swT=Date.now(); swOk=true;
+}, {passive:true});
+document.addEventListener("touchend", e=>{
+  if(!swOk) return; swOk=false;
+  const t=e.changedTouches[0], dx=t.clientX-swX, dy=t.clientY-swY;
+  if(Date.now()-swT>700 || Math.abs(dx)<70 || Math.abs(dx)<Math.abs(dy)*1.8) return;
+  const cur=tab==="ideas"?"research":ptab, i=PT_ORDER.indexOf(cur), j=i+(dx<0?1:-1);
+  if(j<0||j>=PT_ORDER.length) return;
+  const app=document.getElementById("app"); goPtab(PT_ORDER[j]);
+  app.classList.remove("swipe-l","swipe-r"); void app.offsetWidth; app.classList.add(dx<0?"swipe-l":"swipe-r");
+}, {passive:true});
 let lastPhone=isPhone();
 addEventListener("resize", ()=>{ const p=isPhone(); if(p!==lastPhone){ lastPhone=p; if(!sheet) render(); } });
 
@@ -2728,7 +2762,6 @@ function card(g, gi, n, lay){
     const doneThisWeek=week.filter(d=>done.has(dkey(d))).length, goalThisWeek=days.length;
     body=`<div class="week">${week.map(d=>{ const k=dkey(d), fut=d>today&&k!==tk, isT=k===tk;
         return `<button class="${done.has(k)?"done":""} ${days.includes(d.getDay())?"":"off"} ${isT?"today":""}" data-a="check" data-id="${g.id}" data-day="${k}" data-anim-c="${g.id}-${k}" ${fut?"disabled":""} aria-pressed="${done.has(k)}" aria-label="${isT?"Today, ":""}${DAY_NAMES[d.getDay()]} ${d.getDate()}${done.has(k)?", done":""}"><span class="${isT?"tl":""}">${isT?"Today":DAYS[d.getDay()]}</span><span class="dn">${d.getDate()}</span></button>`;}).join("")}</div>
-      <div class="row"><span class="meta"><span class="num" data-num="${g.id}-streak">${st}</span>-day streak</span><span class="meta ${doneThisWeek>=goalThisWeek?"good":""}"><span class="num" data-num="${g.id}-week">${doneThisWeek}/${goalThisWeek}</span> this week</span></div>
 `;
   } else if(g.type==="pipeline"){
     body = pipelineList(g);   // the columns view (pipelineColumns) is kept in the code but no longer offered
