@@ -1061,6 +1061,12 @@ section.collapsed>.sec-head h2{color:var(--muted)}
 .wrap.swipe-r>section,.wrap.swipe-r>.research{animation:swipeR .3s ease-out}
 .pbar{touch-action:manipulation}
 
+/* phones: lighter painting so taps and scrolling stay quick (cards still look like glass) */
+@media (max-width:700px){
+  .card,.sec-blk,.shot-grp,.w-row,.oi,.banner,.demo-bar{-webkit-backdrop-filter:none;backdrop-filter:none}
+  body::before{filter:none;animation:none;inset:0}
+}
+
 /* sign-in page */
 .auth{padding-top:calc(12vh + env(safe-area-inset-top,0px))}
 .auth .btn.primary{padding:12px 16px}
@@ -1600,19 +1606,27 @@ function decorateBoard(app){
     if(c){ const sh=sec.querySelector(".sec-head"); if(sh){ sh.dataset.a="sec-col"; sh.dataset.v=k; } }
     if(top){ top.appendChild(b); if(c && sec.classList.contains("solo")) sec.querySelector(".sec-head h2").textContent = sec.querySelector(".card-top h3")?.textContent || sec.querySelector(".sec-head h2").textContent; }
   });
-  if(isPhone()){
-    app.dataset.ptab=ptab;
-    const shown=[...app.querySelectorAll("section[data-ptab]")].some(s=>s.dataset.ptab===ptab);
-    if(!shown){ const e=document.createElement("div"); e.className="empty ptab-empty";
-      e.textContent = ptab==="channel" ? "Connect your channel in Settings to see it here." : "Nothing here yet. Tap “Edit board” to add a box.";
-      (app.querySelector(".acct")||app.querySelector(".foot"))?.before(e); }
-  } else delete app.dataset.ptab;
+  if(isPhone()) applyPtab(app); else delete app.dataset.ptab;
+}
+function applyPtab(app){
+  app.dataset.ptab=ptab;
+  app.querySelectorAll(".pbar button[data-v]").forEach(b=>b.setAttribute("aria-current", b.dataset.v===ptab?"page":"false"));
+  app.querySelector(".ptab-empty")?.remove();
+  const shown=[...app.querySelectorAll("section[data-ptab]")].some(s=>s.dataset.ptab===ptab);
+  if(!shown){ const e=document.createElement("div"); e.className="empty ptab-empty";
+    e.textContent = ptab==="channel" ? "Connect your channel in Settings to see it here." : "Nothing here yet. Tap “Edit board” to add a box.";
+    (app.querySelector(".acct")||app.querySelector(".foot"))?.before(e); }
 }
 
 // Phone tabs respond on touch end, so a tap that stops a scroll still switches tabs,
 // and a sideways swipe moves to the next or previous tab.
 const PT_ORDER=["today","videos","channel","research"];
 function goPtab(v){
+  const app=document.getElementById("app");
+  if(v!=="research" && tab==="board" && !editing && isPhone() && app.dataset.ptab){
+    ptab=v; try{ localStorage.setItem("cb-ptab",ptab); }catch(e){}
+    applyPtab(app); window.scrollTo(0,0); return;
+  }
   if(v==="research"){ tab="ideas"; } else { tab="board"; ptab=v; try{ localStorage.setItem("cb-ptab",ptab); }catch(e){} }
   editing=false; try{ localStorage.setItem("cb-tab",tab); }catch(e){} render(); window.scrollTo({top:0});
 }
