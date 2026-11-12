@@ -22,7 +22,7 @@
   var m = document.querySelector('link[rel="manifest"]'); if(m) m.href = "/manifest-preview.webmanifest";
   document.addEventListener("DOMContentLoaded", function(){
     var b = document.createElement("div"); b.textContent = "Test version"; b.setAttribute("aria-hidden","true");
-    b.style.cssText = "position:fixed;left:10px;bottom:calc(10px + env(safe-area-inset-bottom,0px));z-index:9999;background:#e5322d;color:#fff;font:600 11px/1 -apple-system,system-ui,sans-serif;padding:5px 8px;border-radius:99px;pointer-events:none;opacity:.92";
+    b.style.cssText = "position:fixed;left:50%;transform:translateX(-50%);top:calc(4px + env(safe-area-inset-top,0px));z-index:9999;background:#e5322d;color:#fff;font:600 11px/1 -apple-system,system-ui,sans-serif;padding:5px 8px;border-radius:99px;pointer-events:none;opacity:.92";
     document.body.appendChild(b);
   });
 })();
@@ -1050,6 +1050,11 @@ section.collapsed>.sec-head h2{color:var(--muted)}
 .bar-top .figure{min-width:0}
 .bar-top .step{flex-shrink:0}
 
+.top-tools{justify-content:flex-end;min-height:0}
+.top-tools:not(:has(button)){display:none}
+.acct{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;padding-top:6px}
+.acct .btn{min-width:120px}
+
 /* sign-in page */
 .auth{padding-top:calc(12vh + env(safe-area-inset-top,0px))}
 .auth .btn.primary{padding:12px 16px}
@@ -1593,8 +1598,8 @@ function decorateBoard(app){
     app.dataset.ptab=ptab;
     const shown=[...app.querySelectorAll("section[data-ptab]")].some(s=>s.dataset.ptab===ptab);
     if(!shown){ const e=document.createElement("div"); e.className="empty ptab-empty";
-      e.textContent = ptab==="channel" ? "Connect your channel in Board settings to see it here." : "Nothing here yet. Tap “Edit board” to add a box.";
-      app.querySelector(".foot")?.before(e); }
+      e.textContent = ptab==="channel" ? "Connect your channel in Settings to see it here." : "Nothing here yet. Tap “Edit board” to add a box.";
+      (app.querySelector(".acct")||app.querySelector(".foot"))?.before(e); }
   } else delete app.dataset.ptab;
 }
 let lastPhone=isPhone();
@@ -1615,9 +1620,7 @@ function render(){
     cd=`<div class="countdown"><div class="n">${left}</div><div class="l">${left===1?"day":"days"} left in ${esc(month)}</div></div>`;
   }
   let h=`<header><div class="title"><h1>${esc(state.name||"My Board")}</h1><div class="date">${esc(dateStr)}</div></div>${cd}</header>
-  <div class="toolbar"><span class="status" id="status">${esc(saveText)}</span>
-    <button class="btn ghost" data-a="signout">${demo?"Exit preview":"Sign out"}</button>
-    <button class="btn ghost" data-a="settings">Board settings</button>
+  <div class="toolbar top-tools">
     ${tab==="board"?`<button class="btn ${editing?"primary":""}" data-a="toggle-edit" aria-pressed="${editing}">${editing?"Done editing":"Edit board"}</button>`:""}</div>
   <nav class="tabs" role="tablist">
     <button role="tab" class="tab" data-a="tab" data-v="board" aria-selected="${tab==="board"}">Board</button>
@@ -1652,6 +1655,7 @@ function render(){
   });
   if(editing) h+=`<button class="add-goal" data-a="add-sec">+ Add a section</button>`;
   }
+  h+=`<div class="acct"><button class="btn" data-a="settings">Settings</button><button class="btn ghost" data-a="signout">${demo?"Exit preview":"Sign out"}</button></div>`;
   h+=`<div class="foot"><a href="#privacy">Privacy & terms</a><span>Data from YouTube API Services</span></div>`;
   const app=document.getElementById("app");
   const prevW={}, prevC={}, prevN={}, prevCards=new Set();
@@ -2761,7 +2765,7 @@ function renderSheet(){
   let h="";
   if(sheet==="settings"){
     const cur=state.accent;
-    h=`<h3>Board settings</h3>
+    h=`<h3>Settings</h3>
     <div class="field"><label for="s-name">Board name</label><input id="s-name" value="${esc(draft.name)}"></div>
     <div class="field"><label for="s-handle">YouTube channel</label>
       <div class="yt-connect"><input id="s-handle" placeholder="@yourchannel" autocomplete="off" autocapitalize="off" value="${esc(draft.channel?"@"+draft.channel.handle:"")}"><button class="btn" data-a="yt-connect">${draft.channel?"Change":"Connect"}</button></div>
@@ -3168,7 +3172,7 @@ function legalHtml(){
   <h2>Who we share data with</h2>
   <p>Only the services that run Creator Board: Supabase (accounts and data), Netlify (hosting the site), YouTube API Services, and Google Gemini (AI writing help in the video workspace). We do not sell your data or show ads.</p>
   <h2>Deleting your data</h2>
-  <p>You can clear your board anytime from Board settings. To delete your account and everything in it, email ${contact} and it will be removed within 30 days.</p>
+  <p>You can clear your board anytime from Settings. To delete your account and everything in it, email ${contact} and it will be removed within 30 days.</p>
   <h2>Terms of use</h2>
   <ul>
     <li>Creator Board is provided as is, during an early beta. Features may change, and stats may be delayed or rounded by YouTube.</li>
