@@ -1625,7 +1625,7 @@ function goPtab(v){
   const app=document.getElementById("app");
   if(v!=="research" && tab==="board" && !editing && isPhone() && app.dataset.ptab){
     ptab=v; try{ localStorage.setItem("cb-ptab",ptab); }catch(e){}
-    applyPtab(app); window.scrollTo(0,0); return;
+    applyPtab(app); app.classList.remove("swipe-l","swipe-r"); window.scrollTo({top:0,behavior:"instant"}); return;
   }
   if(v==="research"){ tab="ideas"; } else { tab="board"; ptab=v; try{ localStorage.setItem("cb-ptab",ptab); }catch(e){} }
   editing=false; try{ localStorage.setItem("cb-tab",tab); }catch(e){} render(); window.scrollTo({top:0});
@@ -1635,7 +1635,7 @@ let ptLast=0;
 function ptHit(x,y){ const bar=document.querySelector(".pbar"); if(!bar) return null; const r=bar.getBoundingClientRect();
   if(y<r.top-8||y>r.bottom+8||x<r.left||x>r.right) return null;
   return [...bar.querySelectorAll("button[data-v]")].find(b=>{ const q=b.getBoundingClientRect(); return x>=q.left&&x<=q.right; })||null; }
-function ptDown(x,y,e){ const b=ptHit(x,y); if(!b) return; if(e.cancelable) e.preventDefault(); if(Date.now()-ptLast<350) return; ptLast=Date.now();
+function ptDown(x,y,e){ const b=ptHit(x,y); if(!b) return; if(e.cancelable) e.preventDefault(); ptLast=Date.now();
   const cur=tab==="ideas"?"research":ptab; if(b.dataset.v!==cur) goPtab(b.dataset.v); }
 document.addEventListener("touchstart", e=>{ const t=e.touches[0]; if(t) ptDown(t.clientX,t.clientY,e); }, {passive:false, capture:true});
 document.addEventListener("pointerdown", e=>{ if(e.pointerType!=="touch") ptDown(e.clientX,e.clientY,e); }, {capture:true});
@@ -3061,7 +3061,7 @@ function handleAction(e){
     case "quick-item": { const g=findGoal(id).goal; const d=JSON.parse(JSON.stringify(g)); d.items.push({id:uid(),label:"",stage:0}); openSheet("goal",d); setTimeout(()=>{ const ins=document.querySelectorAll(".item-edit input"); ins[ins.length-1]?.focus(); },30); break; }
     case "inline-num": startInline(t); break;
     case "sec-col": { const k=t.dataset.v, m=colMap(); m[k]=!isCollapsed(k, t.closest("section")); try{ localStorage.setItem("cb-collapsed", JSON.stringify(m)); }catch(e){} render(); break; }
-    case "ptab": if(t.dataset.v==="research"){ tab="ideas"; } else { tab="board"; ptab=t.dataset.v; try{ localStorage.setItem("cb-ptab",ptab); }catch(e){} } editing=false; try{ localStorage.setItem("cb-tab",tab); }catch(e){} render(); window.scrollTo({top:0}); break;
+    case "ptab": { if(Date.now()-ptLast<600) break; const cur=tab==="ideas"?"research":ptab; if(t.dataset.v!==cur) goPtab(t.dataset.v); break; }
     case "tab": tab=t.dataset.v; editing=false; try{ localStorage.setItem("cb-tab",tab); }catch(e){} render(); window.scrollTo({top:0}); break;
     case "ideas-refresh": loadIdeas(true); break;
     case "scan": scanOutliers(false); break;
