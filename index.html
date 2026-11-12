@@ -1013,6 +1013,39 @@ header{border-bottom:0;padding-bottom:4px}
 .week button.done:not(.today),.habit.done .box{border:0}
 .week button.today.done{border:0;box-shadow:inset 0 0 0 2px color-mix(in srgb,#fff 70%,transparent)}
 
+
+/* collapsible sections */
+.col-btn{flex-shrink:0;width:34px;height:34px;border-radius:50%;border:1px solid var(--soft-line);background:var(--soft);display:grid;place-items:center;color:var(--muted);margin-left:auto;padding:0;transition:transform .18s ease}
+.col-btn svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;transition:transform .3s var(--spring)}
+.col-btn[aria-expanded="false"] svg{transform:rotate(-90deg)}
+.col-btn:active{transform:scale(.9)}
+.sec-head .col-btn{margin-left:auto}
+.sec-head>.note~.col-btn,.sec-head>.btn~.col-btn{margin-left:6px}
+section.collapsed>:not(.sec-head){display:none!important}
+section.collapsed>.sec-head{display:flex!important;cursor:pointer}
+section.collapsed>.sec-head h2{color:var(--muted)}
+/* phone bottom tabs */
+.pbar{display:none}
+@media (max-width:700px){
+  .wrap.has-pbar{padding-bottom:calc(110px + env(safe-area-inset-bottom,0px))}
+  .wrap.has-pbar>.tabs{display:none}
+  .pbar{display:flex;position:fixed;z-index:30;left:12px;right:12px;bottom:calc(10px + env(safe-area-inset-bottom,0px));padding:6px;gap:4px;border-radius:26px;
+    background:var(--glass-2);border:1px solid var(--glass-line);box-shadow:0 12px 34px -10px rgb(0 0 0 / .45), inset 0 1px 0 var(--glass-edge);
+    -webkit-backdrop-filter:blur(30px) saturate(180%);backdrop-filter:blur(30px) saturate(180%)}
+  .pbar button{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:7px 0 6px;border:0;border-radius:20px;background:transparent;color:var(--muted);font-size:11px;font-weight:700;transition:background-color .25s ease,color .2s ease}
+  .pbar svg{width:23px;height:23px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+  .pbar button[aria-current="page"]{color:var(--accent);background:color-mix(in srgb,var(--accent) 14%,transparent)}
+  .pbar button:active{transform:scale(.94)}
+  #app[data-ptab] section[data-ptab]{display:none}
+  #app[data-ptab="today"] section[data-ptab="today"],#app[data-ptab="videos"] section[data-ptab="videos"],#app[data-ptab="channel"] section[data-ptab="channel"]{display:flex}
+  /* tighter channel cards */
+  .card{padding:16px}
+  .yt-card{gap:10px}
+  .arc{max-width:210px;flex-basis:auto}
+  .side-mid{min-height:84px}
+  .wrap{gap:28px}
+}
+
 /* sign-in page */
 .auth{padding-top:calc(12vh + env(safe-area-inset-top,0px))}
 .auth .btn.primary{padding:12px 16px}
@@ -1521,6 +1554,48 @@ function applyAccent(){
 }
 function contrastOn(hex){ const n=parseInt(hex.slice(1),16); const r=n>>16,g=(n>>8)&255,b=n&255; return (0.299*r+0.587*g+0.114*b)>165?"#111111":"#ffffff"; }
 
+
+/* ---------- phone layout: bottom tabs + collapsible sections ---------- */
+let ptab="today";
+try{ const v=localStorage.getItem("cb-ptab"); if(v==="today"||v==="videos"||v==="channel") ptab=v; }catch(e){}
+const PTABS=[
+  ["today","Today",'<path d="M4 6h16v14H4zM4 10h16M9 3v4M15 3v4"/>'],
+  ["videos","Videos",'<rect x="3" y="6" width="13" height="12" rx="2"/><path d="M16 10l5-3v10l-5-3z"/>'],
+  ["channel","Channel",'<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>'],
+  ["research","Research",'<circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/>']];
+function isPhone(){ try{ return matchMedia("(max-width:700px)").matches; }catch(e){ return false; } }
+function colMap(){ try{ return JSON.parse(localStorage.getItem("cb-collapsed")||"{}")||{}; }catch(e){ return {}; } }
+function isCollapsed(k, sec){ const m=colMap(); if(k in m) return !!m[k]; return k==="recent" || (sec && sec.dataset.cal==="1"); }
+function phoneBar(){
+  if(editing || (tab!=="board" && tab!=="ideas")) return "";
+  const cur = tab==="ideas" ? "research" : ptab;
+  return `<nav class="pbar" aria-label="Sections">${PTABS.map(([k,l,ic])=>`<button data-a="ptab" data-v="${k}" aria-current="${cur===k?"page":"false"}"><svg viewBox="0 0 24 24" aria-hidden="true">${ic}</svg><span>${l}</span></button>`).join("")}</nav>`;
+}
+function decorateBoard(app){
+  app.classList.toggle("has-pbar", !editing && (tab==="board"||tab==="ideas"));
+  if(editing || tab!=="board"){ delete app.dataset.ptab; return; }
+  const chev='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>';
+  app.querySelectorAll("section[data-ck]").forEach(sec=>{
+    const k=sec.dataset.ck, c=isCollapsed(k, sec);
+    sec.classList.toggle("collapsed", c);
+    const b=document.createElement("button");
+    b.className="col-btn"; b.dataset.a="sec-col"; b.dataset.v=k; b.setAttribute("aria-expanded", String(!c));
+    b.setAttribute("aria-label", (c?"Show ":"Hide ")+(sec.querySelector(".sec-head h2")?.textContent||"section")); b.innerHTML=chev;
+    const top = (!c && sec.classList.contains("solo")) ? sec.querySelector(".card-top") : sec.querySelector(".sec-head");
+    if(c){ const sh=sec.querySelector(".sec-head"); if(sh){ sh.dataset.a="sec-col"; sh.dataset.v=k; } }
+    if(top){ top.appendChild(b); if(c && sec.classList.contains("solo")) sec.querySelector(".sec-head h2").textContent = sec.querySelector(".card-top h3")?.textContent || sec.querySelector(".sec-head h2").textContent; }
+  });
+  if(isPhone()){
+    app.dataset.ptab=ptab;
+    const shown=[...app.querySelectorAll("section[data-ptab]")].some(s=>s.dataset.ptab===ptab);
+    if(!shown){ const e=document.createElement("div"); e.className="empty ptab-empty";
+      e.textContent = ptab==="channel" ? "Connect your channel in Board settings to see it here." : "Nothing here yet. Tap “Edit board” to add a box.";
+      app.querySelector(".foot")?.before(e); }
+  } else delete app.dataset.ptab;
+}
+let lastPhone=isPhone();
+addEventListener("resize", ()=>{ const p=isPhone(); if(p!==lastPhone){ lastPhone=p; if(!sheet) render(); } });
+
 function render(){
   applyAccent();
   const now=new Date();
@@ -1553,11 +1628,11 @@ function render(){
       if(bc.others){ const i=yc.indexOf(head)+head.length; yc=yc.slice(0,i).replace("<h2>YouTube</h2>","<h2>Your channels</h2>")+`<div class="grid yt-grid">`+yc.slice(i,-"</section>".length)+bc.others+`</div>`+"</section>"; }
       if(bc.add) yc=yc.slice(0,-"</section>".length)+bc.add+"</section>";
     }
-    h+=yc+bc.recent; }
+    h+=yc.replace('<section','<section data-ptab="channel" data-ck="channels"')+bc.recent.replace('<section','<section data-ptab="channel" data-ck="recent"'); }
   if(state.example) h+=`<div class="banner"><span>This is an example board. Edit anything, or start from a blank one.</span><span class="toolbar"><button class="btn sm" data-a="keep">Keep and edit</button><button class="btn sm" data-a="blank">Start blank</button></span></div>`;
 
   state.sections.forEach((s,si)=>{
-    h+=`<section ${!editing&&s.goals.length===1?'class="solo"':""}><div class="sec-head">`;
+    h+=`<section ${!editing&&s.goals.length===1?'class="solo"':""} data-ptab="${s.goals.some(g=>g.type==="pipeline"||g.type==="calendar")?"videos":"today"}" data-ck="${esc(s.id)}" data-cal="${s.goals.some(g=>g.type==="calendar")?1:0}"><div class="sec-head">`;
     if(editing){
       h+=`<input id="sec-${s.id}" data-sec="${s.id}" value="${esc(s.name)}" aria-label="Section name">
       <button class="icon-btn" title="Move section up" data-a="sec-up" data-id="${s.id}" ${si===0?"disabled":""}>↑</button>
@@ -1583,7 +1658,9 @@ function render(){
   app.querySelectorAll("[data-num]").forEach(el=>prevN[el.dataset.num]=el.textContent);
   app.querySelectorAll("[data-card]").forEach(el=>prevCards.add(el.dataset.card));
   const hadBoard=prevCards.size>0;
+  h+=phoneBar();
   app.innerHTML=h;
+  decorateBoard(app);
   // Progress bars grow from where they were.
   const grow=[];
   app.querySelectorAll("[data-anim-w]").forEach(el=>{ const was=prevW[el.dataset.animW]; if(was!=null && was!==el.style.width){ grow.push([el,el.style.width]); el.style.transition="none"; el.style.width=was; } });
@@ -2924,6 +3001,8 @@ function handleAction(e){
     case "clear-done": { const g=findGoal(id).goal; g.items=g.items.filter(i=>i.stage<g.stages.length); commit(); break; }
     case "quick-item": { const g=findGoal(id).goal; const d=JSON.parse(JSON.stringify(g)); d.items.push({id:uid(),label:"",stage:0}); openSheet("goal",d); setTimeout(()=>{ const ins=document.querySelectorAll(".item-edit input"); ins[ins.length-1]?.focus(); },30); break; }
     case "inline-num": startInline(t); break;
+    case "sec-col": { const k=t.dataset.v, m=colMap(); m[k]=!isCollapsed(k, t.closest("section")); try{ localStorage.setItem("cb-collapsed", JSON.stringify(m)); }catch(e){} render(); break; }
+    case "ptab": if(t.dataset.v==="research"){ tab="ideas"; } else { tab="board"; ptab=t.dataset.v; try{ localStorage.setItem("cb-ptab",ptab); }catch(e){} } editing=false; try{ localStorage.setItem("cb-tab",tab); }catch(e){} render(); window.scrollTo({top:0}); break;
     case "tab": tab=t.dataset.v; editing=false; try{ localStorage.setItem("cb-tab",tab); }catch(e){} render(); window.scrollTo({top:0}); break;
     case "ideas-refresh": loadIdeas(true); break;
     case "scan": scanOutliers(false); break;
