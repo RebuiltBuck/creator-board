@@ -1067,6 +1067,14 @@ section.collapsed>.sec-head h2{color:var(--muted)}
   body::before{filter:none;animation:none;inset:0}
 }
 
+/* phones: the board scrolls inside its own box (like Benchmark), so the tab bar outside it
+   takes taps even mid-scroll and the scroll keeps gliding */
+#app[hidden]+#pbarRoot{display:none}
+@media (max-width:700px){
+  html:has(#app.has-pbar:not([hidden])),html:has(#app.has-pbar:not([hidden])) body{height:100%;overflow:hidden}
+  #app.has-pbar:not([hidden]){height:100%;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+}
+
 /* sign-in page */
 .auth{padding-top:calc(12vh + env(safe-area-inset-top,0px))}
 .auth .btn.primary{padding:12px 16px}
@@ -1610,7 +1618,7 @@ function decorateBoard(app){
 }
 function applyPtab(app){
   app.dataset.ptab=ptab;
-  app.querySelectorAll(".pbar button[data-v]").forEach(b=>b.setAttribute("aria-current", b.dataset.v===ptab?"page":"false"));
+  document.querySelectorAll(".pbar button[data-v]").forEach(b=>b.setAttribute("aria-current", b.dataset.v===ptab?"page":"false"));
   app.querySelector(".ptab-empty")?.remove();
   const shown=[...app.querySelectorAll("section[data-ptab]")].some(s=>s.dataset.ptab===ptab);
   if(!shown){ const e=document.createElement("div"); e.className="empty ptab-empty";
@@ -1625,10 +1633,10 @@ function goPtab(v){
   const app=document.getElementById("app");
   if(v!=="research" && tab==="board" && !editing && isPhone() && app.dataset.ptab){
     ptab=v; try{ localStorage.setItem("cb-ptab",ptab); }catch(e){}
-    applyPtab(app); app.classList.remove("swipe-l","swipe-r"); window.scrollTo({top:0,behavior:"instant"}); return;
+    applyPtab(app); app.classList.remove("swipe-l","swipe-r"); app.scrollTop=0; window.scrollTo({top:0,behavior:"instant"}); return;
   }
   if(v==="research"){ tab="ideas"; } else { tab="board"; ptab=v; try{ localStorage.setItem("cb-ptab",ptab); }catch(e){} }
-  editing=false; try{ localStorage.setItem("cb-tab",tab); }catch(e){} render(); window.scrollTo({top:0});
+  editing=false; try{ localStorage.setItem("cb-tab",tab); }catch(e){} render(); app.scrollTop=0; window.scrollTo({top:0});
 }
 // Switch the moment a finger lands on a tab (like the iPhone's own tab bars), so a tap that also stops a scroll still counts.
 let ptLast=0;
@@ -1719,8 +1727,8 @@ function render(){
   app.querySelectorAll("[data-num]").forEach(el=>prevN[el.dataset.num]=el.textContent);
   app.querySelectorAll("[data-card]").forEach(el=>prevCards.add(el.dataset.card));
   const hadBoard=prevCards.size>0;
-  h+=phoneBar();
   app.innerHTML=h;
+  { let pr=document.getElementById("pbarRoot"); if(!pr){ pr=document.createElement("div"); pr.id="pbarRoot"; app.after(pr); } pr.innerHTML=phoneBar(); }
   decorateBoard(app);
   // Progress bars grow from where they were.
   const grow=[];
