@@ -1095,6 +1095,18 @@ section.collapsed>.sec-head h2{color:var(--muted)}
   .edit-mid.centered:active{transform:translateY(-50%) scale(.96)}
 }
 
+/* arc in the same gradient + glow as the bars */
+.arc-fill .ag0,.ag0{stop-color:color-mix(in srgb,var(--accent) 72%,#fff)}
+.ag1{stop-color:var(--accent)}
+.ag2{stop-color:color-mix(in srgb,var(--accent) 75%,#000)}
+.arc-fill{filter:drop-shadow(0 0 6px var(--accent-glow))}
+/* choose which channel numbers show */
+.yt-stats{grid-template-columns:repeat(var(--n,3),minmax(0,1fr))!important}
+.yt-stats .yt-stat:last-child{grid-column:auto!important}
+.yt-stat.off>:not(.yt-show){opacity:.35}
+.yt-show{margin-top:8px;align-self:flex-start;border:1px solid var(--soft-line);background:var(--soft);color:var(--muted);border-radius:999px;padding:5px 11px;font-size:13px;font-weight:700}
+.yt-show.on{background:var(--accent-grad);border-color:transparent;color:var(--on-accent);background-origin:border-box}
+
 /* sign-in page */
 .auth{padding-top:calc(12vh + env(safe-area-inset-top,0px))}
 .auth .btn.primary{padding:12px 16px}
@@ -1819,12 +1831,16 @@ function deltaText(d){
 const METRICS={subscribers:"Subscribers", views:"Views", videos:"Videos"};
 function short(n){ if(n>=1e9) return +(n/1e9).toFixed(n%1e9?1:0)+"B"; if(n>=1e6) return +(n/1e6).toFixed(n%1e6?1:0)+"M"; if(n>=1e3) return +(n/1e3).toFixed(n%1e3?1:0)+"K"; return String(n); }
 function ytGoals(m){ return [...((state.channelGoals||{})[m]||[])].sort((a,b)=>a-b); }
+function ytShow(){ return Object.assign({subscribers:true, views:true, videos:true}, state.ytShow||{}); }
 function ytStat(m, label, shown, value, days){
+  const on=ytShow()[m];
+  if(!on && !editing) return "";
   const goals=ytGoals(m);
   const edit = editing ? `<button class="icon-btn" data-a="yt-goals" data-v="${m}" title="Edit ${METRICS[m]} goals" aria-label="Edit ${METRICS[m]} goals">✎</button>` : "";
   const hint = editing ? `<div class="goal">${goals.length?`${goals.length} goal${goals.length>1?"s":""} set`:"No goals yet"}${arcsOn()[m]?" · arc on":""}</div>` : "";
-  return `<div class="yt-stat" data-anim-c="yts-${m}">
-    <div class="k"><span>${label}</span>${edit}</div><div class="v" data-num="yt-${m}">${shown}</div>${deltaText(delta(m,days))}${hint}</div>`;
+  const tog = editing ? `<button class="yt-show ${on?"on":""}" data-a="yt-show" data-v="${m}" aria-pressed="${on}">${on?"Showing":"Hidden"}</button>` : "";
+  return `<div class="yt-stat ${on?"":"off"}" data-anim-c="yts-${m}">
+    <div class="k"><span>${label}</span>${edit}</div><div class="v" data-num="yt-${m}">${shown}</div>${deltaText(delta(m,days))}${hint}${tog}</div>`;
 }
 function arcsOn(){ return state.ytArcs || { subscribers:true, views:false, videos:false }; }
 function arcsRow(){
@@ -1835,9 +1851,11 @@ function arcsRow(){
 }
 function arcSvg(frac, key){
   const L=Math.PI*80, off=(L*(1-Math.max(0,Math.min(1,frac)))).toFixed(1);
+  const gid="ag-"+String(key).replace(/[^a-z0-9_-]/gi,"");
   return `<svg viewBox="0 0 200 112" aria-hidden="true">
+      <defs><linearGradient id="${gid}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" class="ag0"/><stop offset=".5" class="ag1"/><stop offset="1" class="ag2"/></linearGradient></defs>
       <path class="arc-track" d="M20 100 A80 80 0 0 1 180 100"/>
-      <path class="arc-fill" d="M20 100 A80 80 0 0 1 180 100" stroke-dasharray="${L.toFixed(1)}" style="stroke-dashoffset:${off}" data-anim-o="arc-${key}"/>
+      <path class="arc-fill" d="M20 100 A80 80 0 0 1 180 100" stroke-dasharray="${L.toFixed(1)}" style="stroke-dashoffset:${off};stroke:url(#${gid})" data-anim-o="arc-${key}"/>
     </svg>`;
 }
 function arcFor(m, value){
@@ -1880,7 +1898,7 @@ function channelCard(){
     <div class="yt-head">${c.thumbnail?`<img src="${esc(c.thumbnail)}" alt="" referrerpolicy="no-referrer">`:""}
       <div class="who"><b>${esc(c.title||c.handle)}</b><span>@${esc(c.handle)}${l?` · updated ${esc(shortDay(l.day))}`:""}</span></div></div>
     ${arcsRow()}
-    <div class="yt-stats">
+    <div class="yt-stats" style="--n:${editing?3:Math.max(1,Object.values(ytShow()).filter(Boolean).length)}">
       ${ytStat("subscribers","Subscribers",subs,l?l.subscribers:null,7)}
       ${ytStat("views","Views",l?fmt(l.views):"…",l?l.views:null,7)}
       ${ytStat("videos","Videos",l?fmt(l.videos):"…",l?l.videos:null,30)}
@@ -2844,7 +2862,8 @@ function card(g, gi, n, lay){
 
 /* ---------- sheet (editor) ---------- */
 let draft=null, confirmDel=false, confirmSec=null, confirmEx=false;
-function openSheet(kind, data){ sheet=kind; draft=JSON.parse(JSON.stringify(data)); confirmDel=false; confirmEx=false; renderSheet(); }
+let sheetFresh=false;
+function openSheet(kind, data){ sheet=kind; draft=JSON.parse(JSON.stringify(data)); confirmDel=false; confirmEx=false; sheetFresh=true; renderSheet(); sheetFresh=false; }
 function closeSheet(){
   const wasSettings = sheet==="settings";
   sheet=null; draft=null;
@@ -2979,7 +2998,7 @@ function renderSheet(){
   }
   const wasOpen=!!root.querySelector(".scrim:not(.closing)");
   root.innerHTML=`<div class="scrim" data-a="scrim" ${wasOpen?'style="animation:none"':""}><div class="sheet" role="dialog" aria-modal="true" ${wasOpen?'style="animation:none"':""}>${h}</div></div>`;
-  const first=root.querySelector("input,button.type-opt"); if(first && sheet!=="settings") first.focus({preventScroll:true});
+  if(sheetFresh && matchMedia("(hover:hover) and (pointer:fine)").matches){ const first=root.querySelector("input,button.type-opt"); if(first && sheet!=="settings") first.focus({preventScroll:true}); }
 }
 
 function readGoalForm(){
@@ -3107,6 +3126,7 @@ function handleAction(e){
     case "inline-num": startInline(t); break;
     case "sec-col": { const k=t.dataset.v, m=colMap(); m[k]=!isCollapsed(k, t.closest("section")); try{ localStorage.setItem("cb-collapsed", JSON.stringify(m)); }catch(e){} render(); break; }
     case "ptab": { if(Date.now()-ptLast<600) break; const cur=tab==="ideas"?"research":ptab; if(t.dataset.v!==cur) goPtab(t.dataset.v); break; }
+    case "yt-show": { const s=ytShow(), m=t.dataset.v; s[m]=!s[m]; if(!Object.values(s).some(Boolean)) s[m]=true; state.ytShow=s; commit(); break; }
     case "tab": tab=t.dataset.v; editing=false; try{ localStorage.setItem("cb-tab",tab); }catch(e){} render(); window.scrollTo({top:0}); break;
     case "ideas-refresh": loadIdeas(true); break;
     case "scan": scanOutliers(false); break;
