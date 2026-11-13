@@ -1083,6 +1083,16 @@ section.collapsed>.sec-head h2{color:var(--muted)}
   body:has(.scrim) .pbar{display:none}
 }
 
+@media (max-width:700px){
+  .wrap.edit-moved .top-tools{display:none}
+  .edit-line{position:relative}
+  .edit-mid{flex-shrink:0;margin-left:auto}
+  .edit-mid+.col-btn{margin-left:8px}
+  .edit-mid.centered+.col-btn{margin-left:auto}
+  .edit-mid.centered{position:absolute;top:50%;transform:translateY(-50%);margin:0}
+  .edit-mid.centered:active{transform:translateY(-50%) scale(.96)}
+}
+
 /* sign-in page */
 .auth{padding-top:calc(12vh + env(safe-area-inset-top,0px))}
 .auth .btn.primary{padding:12px 16px}
@@ -1624,6 +1634,19 @@ function decorateBoard(app){
   });
   if(isPhone()) applyPtab(app); else delete app.dataset.ptab;
 }
+function placeEdit(app){
+  app.querySelectorAll(".edit-mid").forEach(b=>b.remove()); app.classList.remove("edit-moved");
+  const sec=[...app.querySelectorAll("section[data-ptab]")].find(s=>s.dataset.ptab===ptab); if(!sec) return;
+  const line=(!sec.classList.contains("collapsed") && sec.classList.contains("solo")) ? sec.querySelector(".card-top") : sec.querySelector(".sec-head");
+  if(!line) return;
+  const b=document.createElement("button"); b.className="btn sm edit-mid"; b.dataset.a="toggle-edit"; b.textContent="Edit";
+  const chev=line.querySelector(".col-btn"); chev ? chev.before(b) : line.appendChild(b);
+  app.classList.add("edit-moved");
+  // centered on the screen when the title leaves room, otherwise just before the arrow
+  const title=line.querySelector("h2,h3"); line.classList.add("edit-line");
+  const lr=line.getBoundingClientRect(), tr=title?title.getBoundingClientRect():{right:lr.left}, bw=b.offsetWidth, mid=window.innerWidth/2;
+  if(tr.right+10 < mid-bw/2 && mid+bw/2 < (chev?chev.getBoundingClientRect().left-10:lr.right)) { b.style.left=(mid-lr.left-bw/2)+"px"; b.classList.add("centered"); }
+}
 function applyPtab(app){
   app.dataset.ptab=ptab;
   document.querySelectorAll(".pbar button[data-v]").forEach(b=>b.setAttribute("aria-current", b.dataset.v===ptab?"page":"false"));
@@ -1632,6 +1655,7 @@ function applyPtab(app){
   if(!shown){ const e=document.createElement("div"); e.className="empty ptab-empty";
     e.textContent = ptab==="channel" ? "Connect your channel in Settings to see it here." : "Nothing here yet. Tap “Edit board” to add a box.";
     (app.querySelector(".acct")||app.querySelector(".foot"))?.before(e); }
+  placeEdit(app);
 }
 
 // Phone tabs respond on touch end, so a tap that stops a scroll still switches tabs,
@@ -1669,7 +1693,7 @@ document.addEventListener("touchend", e=>{
   const cur=tab==="ideas"?"research":ptab, i=PT_ORDER.indexOf(cur), j=i+(dx<0?1:-1);
   if(j<0||j>=PT_ORDER.length) return;
   const app=document.getElementById("app"); goPtab(PT_ORDER[j]);
-  app.classList.remove("swipe-l","swipe-r"); void app.offsetWidth; app.classList.add(dx<0?"swipe-l":"swipe-r");
+  app.classList.remove("swipe-l","swipe-r"); void app.offsetWidth; app.classList.add(dx<0?"swipe-l":"swipe-r"); clearTimeout(goPtab.t); goPtab.t=setTimeout(()=>app.classList.remove("swipe-l","swipe-r"),400);
 }, {passive:true});
 let lastPhone=isPhone();
 addEventListener("resize", ()=>{ const p=isPhone(); if(p!==lastPhone){ lastPhone=p; if(!sheet) render(); } });
@@ -1735,6 +1759,7 @@ function render(){
   app.querySelectorAll("[data-num]").forEach(el=>prevN[el.dataset.num]=el.textContent);
   app.querySelectorAll("[data-card]").forEach(el=>prevCards.add(el.dataset.card));
   const hadBoard=prevCards.size>0;
+  app.classList.remove("swipe-l","swipe-r");
   app.innerHTML=h;
   { let pr=document.getElementById("pbarRoot"); if(!pr){ pr=document.createElement("div"); pr.id="pbarRoot"; app.after(pr); } pr.innerHTML=phoneBar(); }
   decorateBoard(app);
