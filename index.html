@@ -1037,7 +1037,8 @@ section.collapsed>.sec-head h2{color:var(--muted)}
   .pbar button[aria-current="page"]{color:var(--accent);background:color-mix(in srgb,var(--accent) 14%,transparent)}
   .pbar button:active{transform:scale(.94)}
   #app[data-ptab] section[data-ptab]{display:none}
-  #app[data-ptab="today"] section[data-ptab="today"],#app[data-ptab="videos"] section[data-ptab="videos"],#app[data-ptab="channel"] section[data-ptab="channel"]{display:flex}
+  .wrap.edit-phone>.tabs,.wrap.edit-phone .top-tools{display:none}
+  #app[data-ptab="today"] section[data-ptab="today"],#app[data-ptab="videos"] section[data-ptab="videos"],#app[data-ptab="channel"] section[data-ptab="channel"],#app[data-ptab] section[data-ptab="any"]{display:flex}
   /* tighter channel cards */
   .card{padding:16px}
   .yt-card{gap:10px}
@@ -1085,6 +1086,7 @@ section.collapsed>.sec-head h2{color:var(--muted)}
 
 @media (max-width:700px){
   .wrap.edit-moved .top-tools{display:none}
+  .wrap.edit-moved.edit-phone .top-tools:not(:has(.edit-mid)){display:none}
   .edit-line{position:relative}
   .edit-mid{flex-shrink:0;margin-left:auto}
   .edit-mid+.col-btn{margin-left:8px}
@@ -1620,6 +1622,8 @@ function phoneBar(){
 }
 function decorateBoard(app){
   app.classList.toggle("has-pbar", !editing && (tab==="board"||tab==="ideas"));
+  app.classList.toggle("edit-phone", editing && tab==="board" && isPhone());
+  if(editing && tab==="board" && isPhone()){ app.dataset.ptab=ptab; placeEdit(app); return; }
   if(editing || tab!=="board"){ delete app.dataset.ptab; return; }
   const chev='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>';
   app.querySelectorAll("section[data-ck]").forEach(sec=>{
@@ -1636,10 +1640,10 @@ function decorateBoard(app){
 }
 function placeEdit(app){
   app.querySelectorAll(".edit-mid").forEach(b=>b.remove()); app.classList.remove("edit-moved");
-  const sec=[...app.querySelectorAll("section[data-ptab]")].find(s=>s.dataset.ptab===ptab); if(!sec) return;
+  const sec=[...app.querySelectorAll("section[data-ptab]")].find(s=>s.dataset.ptab===ptab||s.dataset.ptab==="any"); if(!sec) return;
   const line=(!sec.classList.contains("collapsed") && sec.classList.contains("solo")) ? sec.querySelector(".card-top") : sec.querySelector(".sec-head");
   if(!line) return;
-  const b=document.createElement("button"); b.className="btn sm edit-mid"; b.dataset.a="toggle-edit"; b.textContent="Edit";
+  const b=document.createElement("button"); b.className="btn sm edit-mid"+(editing?" primary":""); b.dataset.a="toggle-edit"; b.textContent=editing?"Done":"Edit";
   const chev=line.querySelector(".col-btn"); chev ? chev.before(b) : line.appendChild(b);
   app.classList.add("edit-moved");
   // centered on the screen when the title leaves room, otherwise just before the arrow
@@ -1732,7 +1736,7 @@ function render(){
   if(state.example) h+=`<div class="banner"><span>This is an example board. Edit anything, or start from a blank one.</span><span class="toolbar"><button class="btn sm" data-a="keep">Keep and edit</button><button class="btn sm" data-a="blank">Start blank</button></span></div>`;
 
   state.sections.forEach((s,si)=>{
-    h+=`<section ${!editing&&s.goals.length===1?'class="solo"':""} data-ptab="${s.goals.some(g=>g.type==="pipeline"||g.type==="calendar")?"videos":"today"}" data-ck="${esc(s.id)}" data-cal="${s.goals.some(g=>g.type==="calendar")?1:0}"><div class="sec-head">`;
+    h+=`<section ${!editing&&s.goals.length===1?'class="solo"':""} data-ptab="${!s.goals.length?"any":s.goals.some(g=>g.type==="pipeline"||g.type==="calendar")?"videos":"today"}" data-ck="${esc(s.id)}" data-cal="${s.goals.some(g=>g.type==="calendar")?1:0}"><div class="sec-head">`;
     if(editing){
       h+=`<input id="sec-${s.id}" data-sec="${s.id}" value="${esc(s.name)}" aria-label="Section name">
       <button class="icon-btn" title="Move section up" data-a="sec-up" data-id="${s.id}" ${si===0?"disabled":""}>↑</button>
